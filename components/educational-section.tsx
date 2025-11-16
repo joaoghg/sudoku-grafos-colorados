@@ -121,9 +121,7 @@ export function EducationalSection() {
                       <div className="text-2xl font-bold text-purple-600">
                         810
                       </div>
-                      <div className="text-xs text-gray-600">
-                        Arestas (aprox.)
-                      </div>
+                      <div className="text-xs text-gray-600">Arestas</div>
                     </div>
                   </div>
                 </motion.div>
