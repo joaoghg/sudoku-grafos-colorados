@@ -64,8 +64,12 @@ export class SudokuSolver {
       return true;
     }
 
-    // Tentar cada valor possível no domínio
     const possibleValues = Array.from(vertex.domain).sort();
+    if (possibleValues.length === 0) {
+      this.statistics.conflictsFound++;
+      this.recordStep(vertex.id, 0, 'conflict');
+      return false;
+    }
     
     for (const value of possibleValues) {
       this.statistics.totalSteps++;

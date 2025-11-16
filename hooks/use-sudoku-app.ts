@@ -76,12 +76,9 @@ export function useSudokuApp() {
       for (let col = 0; col < 9; col++) {
         const value = currentGrid[row][col].value;
         if (value !== 0) {
-          // Temporariamente remover o valor para testar
-          sudokuGraph.current.setValue(row, col, 0);
           if (!sudokuGraph.current.isValidMove(row, col, value)) {
             conflicts.push({ row, col });
           }
-          sudokuGraph.current.setValue(row, col, value);
         }
       }
     }
@@ -119,9 +116,17 @@ export function useSudokuApp() {
   const generatePuzzle = useCallback(
     (difficulty: DifficultyLevel) => {
       clearPuzzle();
-      const puzzle = sudokuGenerator.current.generate(difficulty);
+      let puzzle = sudokuGenerator.current.generate(difficulty);
       sudokuGraph.current.loadPuzzle(puzzle);
       updateStates();
+
+      // Fallback: garantir solvabilidade pelo solver de grafos
+      const solver = new SudokuSolver(sudokuGraph.current);
+      if (!solver.isPuzzleSolvable()) {
+        puzzle = sudokuGenerator.current.generate(difficulty);
+        sudokuGraph.current.loadPuzzle(puzzle);
+        updateStates();
+      }
     },
     [clearPuzzle, updateStates]
   );
@@ -216,22 +221,22 @@ export function useSudokuApp() {
       const animate = () => {
         if (currentStep < steps.length) {
           const step = steps[currentStep];
+          const coord = {
+            row: Math.floor(step.vertexId / 9),
+            col: step.vertexId % 9,
+          };
 
-          if (step.action === "assign") {
-            const coord = {
-              row: Math.floor(step.vertexId / 9),
-              col: step.vertexId % 9,
-            };
+          if (step.action === "assign" || step.action === "backtrack") {
             setHighlightedCell(coord);
-
-            // Aplicar o valor após um pequeno delay
             setTimeout(() => {
-              const coord = {
-                row: Math.floor(step.vertexId / 9),
-                col: step.vertexId % 9,
-              };
               sudokuGraph.current.setValue(coord.row, coord.col, step.value);
               updateStates();
+            }, stepDelay / 2);
+          } else if (step.action === "conflict") {
+            setHighlightedCell(coord);
+            setConflictCells([{ row: coord.row, col: coord.col }]);
+            setTimeout(() => {
+              setConflictCells([]);
             }, stepDelay / 2);
           }
 

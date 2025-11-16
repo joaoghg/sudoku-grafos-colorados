@@ -1,4 +1,6 @@
 import { DifficultyLevel } from "./types";
+import { SudokuGraph } from "./sudoku-graph";
+import { SudokuSolver } from "./sudoku-solver";
 
 /**
  * Gerador de puzzles de Sudoku com diferentes níveis de dificuldade
@@ -101,6 +103,7 @@ export class SudokuGenerator {
 
     let cellsToRemove = difficultySettings.cellsToRemove;
     const attempts = difficultySettings.maxAttempts;
+    const requireUnique = difficulty === "dificil" || difficulty === "extremo";
 
     for (let attempt = 0; attempt < attempts && cellsToRemove > 0; attempt++) {
       const row = Math.floor(Math.random() * 9);
@@ -110,8 +113,10 @@ export class SudokuGenerator {
         const backup = result[row][col];
         result[row][col] = 0;
 
-        // Verificar se ainda tem solução única (simplificado)
-        if (this.hasValidSolution(result)) {
+        // Verificar se puzzle segue resolvível pelo solver de grafos
+        const solvable = this.hasValidSolutionGraph(result);
+        const uniqueOk = !requireUnique || this.hasUniqueSolutionGraph(result);
+        if (solvable && uniqueOk) {
           cellsToRemove--;
         } else {
           result[row][col] = backup;
@@ -146,6 +151,26 @@ export class SudokuGenerator {
   private hasValidSolution(grid: number[][]): boolean {
     const testGrid = grid.map((row) => [...row]);
     return this.solveSimple(testGrid);
+  }
+
+  /**
+   * Verifica solvabilidade usando o solver de grafos (alinhado com a UI)
+   */
+  private hasValidSolutionGraph(grid: number[][]): boolean {
+    const graph = new SudokuGraph();
+    graph.loadPuzzle(grid);
+    const solver = new SudokuSolver(graph);
+    return solver.isPuzzleSolvable();
+  }
+
+  /**
+   * Verifica unicidade de solução usando o solver de grafos
+   */
+  private hasUniqueSolutionGraph(grid: number[][]): boolean {
+    const graph = new SudokuGraph();
+    graph.loadPuzzle(grid);
+    const solver = new SudokuSolver(graph);
+    return solver.hasUniqueSolution();
   }
 
   /**
